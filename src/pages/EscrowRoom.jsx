@@ -82,32 +82,48 @@ export default function EscrowRoom() {
         isSystem: m.type === 'system'
       }));
 
-      // Protocol Welcome Logic: If no messages in DB, the first person to enter triggers the bot welcome
+      // 1. WELCOME PROTOCOL (Polite & Engaging)
       if (res.data.length === 0 && currentTrade && !isTyping) {
-        saveBotMessage(`🛡️ PROTOCOL INITIATED. Welcome ${user?.username}. I am the AI Middleman for this swap between you and ${user?.user_id === currentTrade.offerer_user_id ? currentTrade.owner_username : currentTrade.offerer_username}. Please both parties type 'ready' to begin assets verification.`);
+        saveBotMessage(`Welcome! 🤖 How can I assist you with your trade today? I am your AI Trade Assistant. I see that ${currentTrade.offerer_username} is offering a ${currentTrade.offered_item_name} for ${currentTrade.owner_username}'s ${currentTrade.requested_item_name}. Please both parties confirm if these terms are correct.`);
         return;
       }
 
       const protocolHeader = [
         { 
           sender: 'SYSTEM', 
-          content: `QT-SECURE-NODE: #${tradeId} [ONLINE]`,
+          content: `SECURE TRADE CHANNEL: #${tradeId} [ACTIVE]`,
           isSystem: true 
         }
       ];
 
       setMessages([...protocolHeader, ...dbMessages]);
 
-      // Trade Handling: Check for dual readiness
-      const humanReadyMessages = dbMessages.filter(m => 
-        !m.isAI && !m.isSystem && 
-        (m.content.toLowerCase().includes('ready') || m.content.toLowerCase().includes('agree'))
-      );
+      // 2. TRADE CONFIRMATION LOGIC
+      const humanMessages = dbMessages.filter(m => !m.isAI && !m.isSystem);
+      const readyUsers = new Set(humanMessages.filter(m => m.content.toLowerCase().includes('ready') || m.content.toLowerCase().includes('agree')).map(m => m.senderId));
       
-      const readyUserIds = new Set(humanReadyMessages.map(m => m.senderId));
-      
-      if (readyUserIds.size >= 2 && !tradeLink) {
-        generateTradeLink();
+      // If both agreed, but AI hasn't repeated terms yet
+      const aiMessages = dbMessages.filter(m => m.isAI);
+      const hasRepeatedTerms = aiMessages.some(m => m.content.includes("agreed trade terms are as follows"));
+      const hasConfirmedExplicitly = aiMessages.some(m => m.content.includes("The trade has been confirmed between"));
+
+      if (readyUsers.size >= 2 && !hasRepeatedTerms && !isTyping) {
+        setIsTyping(true);
+        setTimeout(() => {
+          saveBotMessage(`Thank you both for your readiness. To ensure absolute clarity, the agreed trade terms are as follows: ${currentTrade.offerer_username} will receive ${currentTrade.requested_item_name} and ${currentTrade.owner_username} will receive ${currentTrade.offered_item_name}. Please type 'CONFIRM' to finalize this transaction.`);
+          setIsTyping(false);
+        }, 2000);
+      }
+
+      // 3. FINAL EXPLICIT CONFIRMATION
+      const confirmedUsers = new Set(humanMessages.filter(m => m.content.toUpperCase().includes('CONFIRM')).map(m => m.senderId));
+      if (confirmedUsers.size >= 2 && !hasConfirmedExplicitly && hasRepeatedTerms && !isTyping) {
+        setIsTyping(true);
+        setTimeout(() => {
+          saveBotMessage(`The trade has been confirmed between ${currentTrade.offerer_username} and ${currentTrade.owner_username} for the items listed. Initializing secure swap link...`);
+          generateTradeLink();
+          setIsTyping(false);
+        }, 2000);
       }
     } catch (err) {
       console.error("Fetch messages error:", err);
@@ -142,11 +158,11 @@ export default function EscrowRoom() {
     if (tradeLink) return;
     setIsTyping(true);
     setTimeout(async () => {
-      const link = `https://quicktrade.io/vault/v4-${Math.random().toString(36).substring(7)}`;
+      const link = `https://quicktrade.io/vault/secure-swap-${Math.random().toString(36).substring(7)}`;
       setTradeLink(link);
-      await saveBotMessage(`✅ ASSETS VERIFIED. Dual readiness confirmed. Secure Vault Link generated for swap: ${link}`);
+      await saveBotMessage(`The secure swap channel is now ready. Both parties can proceed to the vault here: ${link}. It has been a pleasure assisting you!`);
       setIsTyping(false);
-    }, 3000);
+    }, 1000);
   };
 
   const handleSendMessage = async (e) => {
@@ -171,13 +187,16 @@ export default function EscrowRoom() {
       
       await fetchMessages();
       
-      // Proactive AI handling
+      // Proactive AI reactions to user input
       const input = msgContent.toLowerCase();
-      if (input.includes('confirm') || input.includes('yes')) {
-        saveBotMessage("Agreement noted. I am monitoring for the other party's confirmation.");
+      if (input.includes('hello') || input.includes('hi')) {
+        saveBotMessage(`Hello ${user?.username}! How can I assist you with your trade today?`);
+      } else if (input.includes('scam') || input.includes('safe')) {
+        saveBotMessage("Safety is our top priority. All items are held in an automated, encrypted vault during the swap process to ensure a 100% secure transaction.");
       }
     } catch (err) {
       console.error("Send error:", err);
+      alert("Error: Unable to deliver message. Please check your connection.");
     }
   };
 
@@ -290,13 +309,23 @@ export default function EscrowRoom() {
                   type="text" 
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Enter protocol command or message..."
+                  placeholder="Type your message here..."
                   style={{ 
                     flex: 1, backgroundColor: 'transparent', border: 'none', 
-                    color: '#0f0', outline: 'none', fontSize: '1rem'
+                    color: '#fff', outline: 'none', fontSize: '1rem'
                   }}
                 />
-                <button type="submit" style={{ backgroundColor: 'transparent', color: 'var(--gold)', border: '1px solid var(--gold)', padding: '5px 15px', cursor: 'pointer' }}>SEND</button>
+                <button type="submit" style={{ 
+                  backgroundColor: 'var(--gold)', 
+                  color: '#000', 
+                  border: 'none', 
+                  padding: '8px 25px', 
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  borderRadius: '4px',
+                  textTransform: 'uppercase',
+                  fontSize: '0.8rem'
+                }}>Send Message</button>
               </form>
             </div>
           </div>
