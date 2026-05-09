@@ -36,9 +36,9 @@ exports.getTradeMessages = async (req, res) => {
   try {
     const { trade_id } = req.params;
     const messages = await db.all(
-      `SELECT m.*, u.username as sender_name 
+      `SELECT m.*, COALESCE(u.username, 'QUICKTRADE AI') as sender_name 
        FROM Messages m 
-       JOIN users u ON m.sender_id = u.user_id 
+       LEFT JOIN users u ON m.sender_id = u.user_id 
        WHERE m.trade_id = ? 
        ORDER BY m.timestamp ASC`,
       [trade_id]
