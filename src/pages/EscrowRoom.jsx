@@ -34,13 +34,27 @@ export default function EscrowRoom() {
   const fetchMessages = async () => {
     try {
       const res = await axios.get(`/api/messages/trade/${tradeId}`);
+      
+      const systemMessages = [
+        { 
+          sender: 'System', 
+          content: `Secure Escrow Room established for Trade #${tradeId}.` 
+        },
+        { 
+          sender: 'QuickTrade Bot', 
+          content: "Beep boop! 🤖 I am the Official QuickTrade AI Middleman. I will be facilitating this trade to ensure 100% safety for both parties. Please both parties type 'ready' to begin." 
+        }
+      ];
+
+      const dbMessages = res.data.map(m => ({
+        sender: m.sender_name,
+        content: m.content,
+        timestamp: m.timestamp
+      }));
+
+      setMessages([...systemMessages, ...dbMessages]);
+      
       if (res.data.length > 0) {
-        setMessages(res.data.map(m => ({
-          sender: m.sender_name,
-          content: m.content,
-          timestamp: m.timestamp
-        })));
-        
         // Check for "ready" in messages to trigger AI confirmation
         const lastMessages = res.data.slice(-5);
         const readyUsers = new Set();
@@ -53,18 +67,6 @@ export default function EscrowRoom() {
         if (readyUsers.size >= 2 && !tradeLink) {
           confirmTradeWithAI();
         }
-      } else {
-        // Initial AI welcome if no messages yet
-        setMessages([
-          { 
-            sender: 'System', 
-            content: `Secure Escrow Room established for Trade #${tradeId}.` 
-          },
-          { 
-            sender: 'QuickTrade Bot', 
-            content: "Beep boop! 🤖 I am the Official QuickTrade AI Middleman. I will be facilitating this trade to ensure 100% safety for both parties. Please both parties type 'ready' to begin." 
-          }
-        ]);
       }
     } catch (err) {
       console.error("Failed to fetch messages:", err);
@@ -183,7 +185,7 @@ export default function EscrowRoom() {
                   href={tradeLink} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="gold-btn"
+                  className="btn-trade"
                   style={{ display: 'inline-block', padding: '10px 25px', textDecoration: 'none' }}
                 >
                   Complete Trade Now
@@ -230,10 +232,10 @@ export default function EscrowRoom() {
               <div key={i} style={{ 
                 alignSelf: msg.sender === user.username ? 'flex-end' : 'flex-start',
                 maxWidth: '70%',
-                backgroundColor: msg.sender === 'Middleman' ? 'rgba(212, 175, 55, 0.1)' : (msg.sender === user.username ? 'var(--gold)' : '#333'),
+                backgroundColor: msg.sender === 'QuickTrade Bot' || msg.sender === 'System' ? 'rgba(212, 175, 55, 0.1)' : (msg.sender === user.username ? 'var(--gold)' : '#333'),
                 color: msg.sender === user.username ? 'var(--black)' : 'white',
                 padding: '10px 15px', borderRadius: '12px',
-                border: msg.sender === 'Middleman' ? '1px solid var(--gold)' : 'none'
+                border: msg.sender === 'QuickTrade Bot' || msg.sender === 'System' ? '1px solid var(--gold)' : 'none'
               }}>
                 <p style={{ fontSize: '0.65rem', fontWeight: 'bold', marginBottom: '4px', opacity: 0.8 }}>{msg.sender}</p>
                 <p style={{ fontSize: '0.9rem' }}>{msg.content}</p>
@@ -256,7 +258,14 @@ export default function EscrowRoom() {
                 color: 'white', padding: '12px', borderRadius: '8px', outline: 'none' 
               }}
             />
-            <button type="submit" className="btn-gold">Send</button>
+            <button type="submit" style={{
+              backgroundColor: 'var(--gold)',
+              color: 'var(--black)',
+              padding: '10px 20px',
+              borderRadius: '8px',
+              fontWeight: 'bold',
+              cursor: 'pointer'
+            }}>Send</button>
           </form>
         </div>
       </main>
