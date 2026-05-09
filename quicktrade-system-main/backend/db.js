@@ -172,6 +172,10 @@ const initDB = async () => {
 
                 // PostgreSQL Migration logic
                 try {
+                    await dbInterface.run('ALTER TABLE Messages ALTER COLUMN convo_id DROP NOT NULL');
+                } catch (e) { console.log("Postgres Migration Info: convo_id nullability update."); }
+
+                try {
                     await dbInterface.run('ALTER TABLE Trades ADD COLUMN IF NOT EXISTS status_detail TEXT DEFAULT \'initial\'');
                 } catch (e) { console.log("Postgres Migration Info: status_detail column check."); }
 
