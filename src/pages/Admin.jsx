@@ -136,8 +136,18 @@ export default function Admin() {
                 />
               </div>
               <button type="submit" 
-                className="btn-trade"
-                style={{ width: '100%', padding: '12px', textDecoration: 'none', border: 'none', cursor: 'pointer' }}
+                style={{ 
+                  width: '100%', 
+                  padding: '12px', 
+                  backgroundColor: 'var(--gold)', 
+                  color: 'var(--black)', 
+                  fontWeight: 'bold', 
+                  borderRadius: '5px', 
+                  cursor: 'pointer', 
+                  border: 'none',
+                  textTransform: 'uppercase',
+                  letterSpacing: '1px'
+                }}
               >Add Game</button>
             </form>
           </div>
@@ -160,8 +170,18 @@ export default function Admin() {
                 />
               </div>
               <button type="submit" 
-                className="btn-trade"
-                style={{ width: '100%', padding: '12px', textDecoration: 'none', border: 'none', cursor: 'pointer' }}
+                style={{ 
+                  width: '100%', 
+                  padding: '12px', 
+                  backgroundColor: 'var(--gold)', 
+                  color: 'var(--black)', 
+                  fontWeight: 'bold', 
+                  borderRadius: '5px', 
+                  cursor: 'pointer', 
+                  border: 'none',
+                  textTransform: 'uppercase',
+                  letterSpacing: '1px'
+                }}
               >Add Category</button>
             </form>
 

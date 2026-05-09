@@ -52,8 +52,15 @@ export default function EscrowRoom() {
         timestamp: m.timestamp
       }));
 
-      setMessages([...systemMessages, ...dbMessages]);
+      const allMessages = [...systemMessages, ...dbMessages];
+      setMessages(allMessages);
       
+      // Auto-scroll to bottom
+      const chatContainer = document.getElementById('chat-messages');
+      if (chatContainer) {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+
       if (res.data.length > 0) {
         // Check for "ready" in messages to trigger AI confirmation
         const lastMessages = res.data.slice(-5);
@@ -227,22 +234,23 @@ export default function EscrowRoom() {
           backgroundColor: 'var(--black-light)', borderRadius: '15px', 
           border: '1px solid #333', height: '500px', display: 'flex', flexDirection: 'column' 
         }}>
-          <div style={{ flex: 1, padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div id="chat-messages" style={{ flex: 1, padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px' }}>
             {messages.map((msg, i) => (
               <div key={i} style={{ 
                 alignSelf: msg.sender === user.username ? 'flex-end' : 'flex-start',
                 maxWidth: '70%',
-                backgroundColor: msg.sender === 'QuickTrade Bot' || msg.sender === 'System' ? 'rgba(212, 175, 55, 0.1)' : (msg.sender === user.username ? 'var(--gold)' : '#333'),
-                color: msg.sender === user.username ? 'var(--black)' : 'white',
+                backgroundColor: msg.sender === 'QuickTrade Bot' || msg.sender === 'System' ? 'rgba(212, 175, 55, 0.2)' : (msg.sender === user?.username ? 'var(--gold)' : '#333'),
+                color: msg.sender === user?.username ? 'var(--black)' : 'white',
                 padding: '10px 15px', borderRadius: '12px',
-                border: msg.sender === 'QuickTrade Bot' || msg.sender === 'System' ? '1px solid var(--gold)' : 'none'
+                border: msg.sender === 'QuickTrade Bot' || msg.sender === 'System' ? '2px solid var(--gold)' : 'none',
+                boxShadow: msg.sender === 'QuickTrade Bot' ? '0 0 10px rgba(212, 175, 55, 0.3)' : 'none'
               }}>
                 <p style={{ fontSize: '0.65rem', fontWeight: 'bold', marginBottom: '4px', opacity: 0.8 }}>{msg.sender}</p>
                 <p style={{ fontSize: '0.9rem' }}>{msg.content}</p>
               </div>
             ))}
             {isTyping && (
-              <div style={{ alignSelf: 'flex-start', backgroundColor: 'rgba(212, 175, 55, 0.1)', color: 'white', padding: '10px 15px', borderRadius: '12px', border: '1px solid var(--gold)' }}>
+              <div style={{ alignSelf: 'flex-start', backgroundColor: 'rgba(212, 175, 55, 0.2)', color: 'white', padding: '10px 15px', borderRadius: '12px', border: '2px solid var(--gold)', boxShadow: '0 0 10px rgba(212, 175, 55, 0.3)' }}>
                 <p style={{ fontSize: '0.8rem' }}>QuickTrade Bot is typing...</p>
               </div>
             )}
