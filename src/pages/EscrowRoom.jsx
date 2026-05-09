@@ -184,7 +184,10 @@ export default function EscrowRoom() {
     if (!newMessage.trim() || !trade) return;
 
     const userId = Number(user?.user_id || user?.id);
-    const receiverId = userId === trade.offerer_user_id ? trade.owner_user_id : trade.offerer_user_id;
+    const offererId = Number(trade.offerer_user_id);
+    const ownerId = Number(trade.owner_user_id);
+    const receiverId = userId === offererId ? ownerId : offererId;
+    
     const msgContent = newMessage;
     setNewMessage('');
 
@@ -192,16 +195,16 @@ export default function EscrowRoom() {
       await axios.post('/api/messages/send', {
         sender_id: userId,
         receiver_id: receiverId,
-        trade_id: tradeId,
+        trade_id: Number(tradeId),
         content: msgContent,
         type: 'user'
       });
       await fetchMessages();
     } catch (err) {
       console.error("Send error:", err);
-      // System notification for failure
-      const errorMsg = "SYSTEM ERROR: Connection failed. Attempting to restablish link... Please try sending your message again.";
-      setMessages(prev => [...prev, { sender: 'SYSTEM', content: errorMsg, isSystem: true }]);
+      const errMsg = err.response?.data?.error || err.message || "Unknown error";
+      const errorDisplay = `SYSTEM ERROR: ${errMsg}. Please check if the backend server is running and your database is up to date.`;
+      setMessages(prev => [...prev, { sender: 'SYSTEM', content: errorDisplay, isSystem: true }]);
     }
   };
 

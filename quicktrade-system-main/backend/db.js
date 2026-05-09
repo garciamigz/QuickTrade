@@ -169,7 +169,21 @@ const initDB = async () => {
                         UNIQUE(user_id, post_id)
                     );
                 `);
-                console.log("PostgreSQL Tables Verified/Created");
+
+                // PostgreSQL Migration logic
+                try {
+                    await dbInterface.run('ALTER TABLE Trades ADD COLUMN IF NOT EXISTS status_detail TEXT DEFAULT \'initial\'');
+                } catch (e) { console.log("Postgres Migration Info: status_detail column check."); }
+
+                try {
+                    await dbInterface.run('ALTER TABLE Messages ADD COLUMN IF NOT EXISTS type TEXT DEFAULT \'user\'');
+                } catch (e) { console.log("Postgres Migration Info: message type column check."); }
+
+                try {
+                    await dbInterface.run('ALTER TABLE Messages ADD COLUMN IF NOT EXISTS trade_id INTEGER');
+                } catch (e) { console.log("Postgres Migration Info: trade_id column check."); }
+
+                console.log("PostgreSQL Tables Verified/Created and Migrated");
                 db = dbInterface;
                 return db;
             } catch (err) {
@@ -266,14 +280,24 @@ const initDB = async () => {
                         FOREIGN KEY (trade_id) REFERENCES Trades(trade_id)
                     );
 
-                    CREATE TABLE IF NOT EXISTS TradeLogs (
-                        log_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        trade_id INTEGER NOT NULL,
-                        event TEXT NOT NULL,
-                        details TEXT,
-                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (trade_id) REFERENCES Trades(trade_id)
-                    );
+                    // Migration: Ensure new columns exist for existing databases
+                    try {
+                        await db.run('ALTER TABLE Trades ADD COLUMN status_detail TEXT DEFAULT "initial"');
+                    } catch (e) { /* Column already exists */ }
+
+                    try {
+                        await db.run('ALTER TABLE Messages ADD COLUMN type TEXT DEFAULT "user"');
+                    } catch (e) { /* Column already exists */ }
+
+                    try {
+                        await db.run('ALTER TABLE Messages ADD COLUMN trade_id INTEGER');
+                    } catch (e) { /* Column already exists */ }
+
+                    try {
+                        await db.run('CREATE TABLE IF NOT EXISTS TradeLogs (log_id INTEGER PRIMARY KEY AUTOINCREMENT, trade_id INTEGER, event TEXT, details TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)');
+                    } catch (e) { /* Table already exists */ }
+
+                    console.log("Database schema verified and migrated.");
 
                     CREATE TABLE IF NOT EXISTS Games (
                         game_id INTEGER PRIMARY KEY AUTOINCREMENT,
