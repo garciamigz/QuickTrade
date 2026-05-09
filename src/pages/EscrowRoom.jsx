@@ -35,16 +35,24 @@ export default function EscrowRoom() {
     try {
       const res = await axios.get(`/api/messages/trade/${tradeId}`);
       
-      const systemMessages = [
-        { 
-          sender: 'System', 
-          content: `Secure Escrow Room established for Trade #${tradeId}.` 
-        },
-        { 
-          sender: 'QuickTrade Bot', 
-          content: "Beep boop! 🤖 I am the Official QuickTrade AI Middleman. I will be facilitating this trade to ensure 100% safety for both parties. Please both parties type 'ready' to begin." 
-        }
-      ];
+      // We only show the welcome messages if we have the trade details
+      let systemMessages = [];
+      if (trade) {
+        systemMessages = [
+          { 
+            sender: 'System', 
+            content: `🛡️ Secure Escrow Room established for Trade #${tradeId}.` 
+          },
+          { 
+            sender: 'QuickTrade Bot', 
+            content: `Greetings! 🤖 I am your Official AI Middleman. I am here to facilitate a 100% safe swap between ${trade.offerer_username} and ${trade.owner_username}.` 
+          },
+          {
+            sender: 'QuickTrade Bot',
+            content: "To begin, please both parties confirm the items listed above are correct by typing 'ready' or 'agree'."
+          }
+        ];
+      }
 
       const dbMessages = res.data.map(m => ({
         sender: m.sender_name,
@@ -56,10 +64,12 @@ export default function EscrowRoom() {
       setMessages(allMessages);
       
       // Auto-scroll to bottom
-      const chatContainer = document.getElementById('chat-messages');
-      if (chatContainer) {
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-      }
+      setTimeout(() => {
+        const chatContainer = document.getElementById('chat-messages');
+        if (chatContainer) {
+          chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+      }, 100);
 
       if (res.data.length > 0) {
         // Check for "ready" in messages to trigger AI confirmation
@@ -109,15 +119,17 @@ export default function EscrowRoom() {
       const msg = userMsg.toLowerCase();
 
       if (msg.includes("hello") || msg.includes("hi")) {
-        response = "Greetings! Please both parties confirm you are ready to begin the item verification process.";
+        response = `Greetings ${user.username}! Please confirm you are ready to proceed with the verification of your ${user.user_id === trade.offerer_user_id ? trade.offered_item_name : trade.requested_item_name}.`;
       } else if (msg.includes("how") && msg.includes("work")) {
-        response = "I will generate two unique secure trade links. Once you both send your items to my secure vault, I will verify their metadata and swap them simultaneously. This prevents any 'run-away' scams.";
+        response = "I act as a secure vault. You both send your items to my automated escrow system. Once both are received and verified against the trade agreement, I swap them instantly. This makes it impossible for anyone to get scammed.";
       } else if (msg.includes("ready") || msg.includes("confirm")) {
-        response = "I have noted your readiness. Waiting for the other party to also confirm...";
+        response = "Understood. I am checking the item metadata in the game database. Waiting for the other party to also confirm their readiness.";
+      } else if (msg.includes("agree") || msg.includes("yes")) {
+        response = "Excellent. Agreement logged. Please ensure you have no pending trade bans on your account before we initiate the secure link.";
       } else if (msg.includes("scam") || msg.includes("safe")) {
-        response = "Rest assured, I am an automated AI. I have no human emotions or greed. Your items are held in a multi-sig encrypted vault until both sides of the trade are satisfied.";
+        response = "Safety is my primary directive. All trades are logged on the blockchain and items are held in multi-sig cold storage during the swap process.";
       } else {
-        response = "I am monitoring the trade. Please let me know if you have any specific questions about the escrow process.";
+        response = "I am monitoring this trade for any suspicious activity. Please proceed with the verification by typing 'ready'.";
       }
 
       // Add AI response to local state
@@ -128,26 +140,29 @@ export default function EscrowRoom() {
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !trade) return;
     
     try {
-      // Determine receiver_id (the other person in the trade)
-       const receiver_id = user.user_id === trade.offerer_user_id ? trade.owner_user_id : trade.offerer_user_id;
+      const userId = user.user_id || user.id;
+      const isOfferer = userId === trade.offerer_user_id;
+      const receiver_id = isOfferer ? trade.owner_user_id : trade.offerer_user_id;
 
       await axios.post('/api/messages/send', {
-        sender_id: user.user_id,
+        sender_id: userId,
         receiver_id: receiver_id,
         trade_id: tradeId,
         content: newMessage
       });
 
+      const userMsg = newMessage;
       setNewMessage('');
-      fetchMessages(); // Refresh immediately
+      await fetchMessages(); 
       
       // Trigger AI response locally for interactivity
-      generateAIResponse(newMessage);
+      generateAIResponse(userMsg);
     } catch (err) {
       console.error("Failed to send message:", err);
+      alert("Failed to send message. Please try again.");
     }
   };
 
@@ -157,10 +172,14 @@ export default function EscrowRoom() {
       const res = await axios.get(`/api/trades/user/${user.user_id}`);
       const currentTrade = res.data.find(t => t.trade_id === parseInt(tradeId));
       
-      // Need to make sure the trade object has user IDs
-      // The current backend might not return them in the user trades list
-      // Let's check tradeController.getUserTrades
-      setTrade(currentTrade);
+      if (currentTrade) {
+        setTrade(currentTrade);
+        // Initial AI Welcome once trade details are loaded
+        if (messages.length <= 2) {
+          const welcomeMsg = `Hello ${user.username}! I am your assigned Middleman for Trade #${tradeId}. I will be securing the swap between your ${user.user_id === currentTrade.offerer_user_id ? currentTrade.offered_item_name : currentTrade.requested_item_name} and the other party's item. Please both parties type 'ready' to begin verification.`;
+          setMessages(prev => [...prev, { sender: 'QuickTrade Bot', content: welcomeMsg }]);
+        }
+      }
     } catch (err) {
       console.error("Failed to fetch trade details:", err);
     }

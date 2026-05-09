@@ -25,14 +25,29 @@ export default function Profile() {
   
   const [favorites, setFavorites] = useState([]);
   const [listings, setListings] = useState([]);
+  const [trades, setTrades] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
       if (activeTab === 'favorites') fetchFavorites();
       if (activeTab === 'listings') fetchListings();
+      if (activeTab === 'history') fetchTrades();
     }
   }, [user, activeTab]);
+
+  const fetchTrades = async () => {
+     setLoading(true);
+     const userId = user.user_id || user.id;
+     try {
+       const res = await axios.get(`/api/trades/user/${userId}`);
+       setTrades(res.data);
+     } catch (err) {
+       console.error("Failed to fetch trades:", err);
+     } finally {
+       setLoading(false);
+     }
+   };
 
   const fetchFavorites = async () => {
     setLoading(true);
@@ -249,32 +264,61 @@ export default function Profile() {
           )}
 
           {activeTab === 'history' && (
-            <div className="history-list">
-              <table className="history-table">
+            <div className="history-list" style={{ overflowX: 'auto' }}>
+              <table className="history-table" style={{ width: '100%', borderCollapse: 'collapse', color: 'white' }}>
                 <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Type</th>
-                    <th>Item</th>
-                    <th>Status</th>
-                    <th>Value</th>
+                  <tr style={{ borderBottom: '1px solid var(--gold)', textAlign: 'left' }}>
+                    <th style={{ padding: '15px' }}>Date</th>
+                    <th style={{ padding: '15px' }}>Trade ID</th>
+                    <th style={{ padding: '15px' }}>Offered Item</th>
+                    <th style={{ padding: '15px' }}>Requested Item</th>
+                    <th style={{ padding: '15px' }}>Status</th>
+                    <th style={{ padding: '15px' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td>2026-05-01</td>
-                    <td>Trade</td>
-                    <td>Karambit | Doppler</td>
-                    <td className="status-completed">Completed</td>
-                    <td>$800.00</td>
-                  </tr>
-                  <tr>
-                    <td>2026-04-28</td>
-                    <td>Buy Credits</td>
-                    <td>1000 QTC</td>
-                    <td className="status-completed">Completed</td>
-                    <td>$10.00</td>
-                  </tr>
+                  {loading ? (
+                    <tr><td colSpan="6" style={{ padding: '20px', color: 'var(--gold)' }}>Loading history...</td></tr>
+                  ) : trades.length > 0 ? (
+                    trades.map(trade => (
+                      <tr key={trade.trade_id} style={{ borderBottom: '1px solid #222' }}>
+                        <td style={{ padding: '15px', fontSize: '0.9rem' }}>{new Date(trade.timestamp).toLocaleDateString()}</td>
+                        <td style={{ padding: '15px' }}>#{trade.trade_id}</td>
+                        <td style={{ padding: '15px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <img src={trade.offered_item_image} style={{ width: '30px' }} alt="" />
+                            <span>{trade.offered_item_name}</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: '15px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <img src={trade.requested_item_image} style={{ width: '30px' }} alt="" />
+                            <span>{trade.requested_item_name}</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: '15px' }}>
+                          <span style={{ 
+                            padding: '4px 10px', borderRadius: '4px', fontSize: '0.8rem',
+                            backgroundColor: trade.status === 'in_escrow' ? 'rgba(212, 175, 55, 0.2)' : (trade.status === 'completed' ? 'rgba(0, 255, 0, 0.1)' : 'rgba(255, 255, 255, 0.1)'),
+                            color: trade.status === 'in_escrow' ? 'var(--gold)' : (trade.status === 'completed' ? '#44ff44' : '#888')
+                          }}>
+                            {trade.status.replace('_', ' ').toUpperCase()}
+                          </span>
+                        </td>
+                        <td style={{ padding: '15px' }}>
+                          <button 
+                            className="btn-gold" 
+                            style={{ padding: '5px 12px', fontSize: '0.8rem' }}
+                            onClick={() => window.location.href = `/escrow/${trade.trade_id}`}
+                          >
+                            Enter Room
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr><td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: '#666' }}>No transactions found.</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
