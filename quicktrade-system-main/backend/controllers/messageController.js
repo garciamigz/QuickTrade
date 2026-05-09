@@ -5,10 +5,14 @@ exports.sendMessage = async (req, res) => {
   try {
     const { sender_id, receiver_id, trade_id, content, convo_id, type } = req.body;
     
-    // Simplified insertion - removed strict FK requirements for bot/system messages
+    // Explicitly cast trade_id to Number if provided
+    const tid = trade_id ? Number(trade_id) : null;
+    const sid = sender_id !== undefined ? Number(sender_id) : 0;
+    const rid = receiver_id !== undefined ? Number(receiver_id) : 0;
+
     const result = await db.run(
       'INSERT INTO Messages (sender_id, receiver_id, trade_id, convo_id, content, type, timestamp) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)',
-      [sender_id || 0, receiver_id || 0, trade_id || null, convo_id || null, content, type || 'user']
+      [sid, rid, tid, convo_id || null, content, type || 'user']
     );
 
     res.status(201).json({ 
@@ -17,7 +21,7 @@ exports.sendMessage = async (req, res) => {
     });
   } catch (err) {
     console.error("[SEND_MESSAGE_ERROR]", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "DATABASE_ERROR: " + err.message });
   }
 };
 

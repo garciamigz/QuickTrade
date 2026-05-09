@@ -185,3 +185,18 @@ exports.getUserTrades = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch user trades" });
   }
 };
+
+exports.updateTradeStatusDetail = async (req, res) => {
+  try {
+    const { trade_id, status_detail } = req.body;
+    const db = await sql.getDB();
+    await db.run(
+      'UPDATE Trades SET status_detail = ? WHERE trade_id = ?',
+      [status_detail, trade_id]
+    );
+    res.json({ message: "Trade status updated" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update trade status" });
+  }
+};
