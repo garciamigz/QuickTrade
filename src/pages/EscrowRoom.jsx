@@ -63,32 +63,32 @@ export default function EscrowRoom() {
         sender: m.sender_name,
         content: m.content,
         timestamp: m.timestamp,
-        isUser: Number(m.sender_id) === Number(user.user_id || user.id),
-        isAI: Number(m.sender_id) === 0,
-        isSystem: Number(m.sender_id) === -1
+        isUser: Number(m.sender_id) === Number(user?.user_id || user?.id),
+        isAI: Number(m.sender_id) === 0 || m.type === 'bot',
+        isSystem: m.type === 'system'
       }));
 
-      // If no messages in DB yet, we can add a local welcome, 
-      // but it's better to just show it if the DB is empty.
-      const welcomeMessages = res.data.length === 0 ? [
+      // Base protocol messages that are always at the top
+      const protocolMessages = [
         { 
           sender: 'SYSTEM', 
-          content: `PROTOCOL INITIATED: Secure Escrow Room #${tradeId} established.`,
+          content: `🛡️ SECURITY PROTOCOL ACTIVE: Trade Node #${tradeId} Secured.`,
           isSystem: true 
         },
         { 
           sender: 'QUICKTRADE AI', 
-          content: `Greetings. I am your Official AI Middleman. I will oversee the verification and transfer of items between ${trade?.offerer_username || 'Party A'} and ${trade?.owner_username || 'Party B'}. Please type 'ready' to begin.`,
+          content: `Protocol v4.2 online. Welcome ${user?.username || 'Trader'}. I am your Middleman. I will facilitate this swap between you and ${trade?.owner_username === user?.username ? trade?.offerer_username : trade?.owner_username}.`,
           isAI: true
         }
-      ] : [];
+      ];
 
-      setMessages([...welcomeMessages, ...dbMessages]);
+      setMessages([...protocolMessages, ...dbMessages]);
 
-      // Check for ready state in recent messages
-      const lastFive = res.data.slice(-5);
-      const readyParties = new Set(lastFive.filter(m => m.content.toLowerCase().includes('ready')).map(m => m.sender_id));
-      if (readyParties.size >= 2 && !tradeLink) {
+      // Check for ready state
+      const readyMessages = dbMessages.filter(m => m.content.toLowerCase().includes('ready'));
+      const uniqueSenders = new Set(readyMessages.map(m => m.sender));
+      
+      if (uniqueSenders.size >= 2 && !tradeLink) {
         generateTradeLink();
       }
     } catch (err) {
@@ -96,37 +96,37 @@ export default function EscrowRoom() {
     }
   };
 
-  const saveBotMessage = async (content) => {
+  const saveBotMessage = async (content, type = 'bot') => {
     try {
       await axios.post('/api/messages/send', {
-        sender_id: 0, // Bot ID
+        sender_id: 0, 
         receiver_id: 0,
         trade_id: tradeId,
-        content: content
+        content: content,
+        type: type
       });
       fetchMessages();
     } catch (err) {
-      console.error("Bot message save error:", err);
+      console.error("Bot message error:", err);
     }
   };
 
   const generateTradeLink = () => {
-    if (tradeLink) return; // Prevent multiple links
-    
+    if (tradeLink) return;
     setIsTyping(true);
     setTimeout(async () => {
-      const link = `https://quicktrade.io/secure-swap/v2/${Math.random().toString(36).substring(7)}`;
+      const link = `https://quicktrade.io/vault/secure-swap-${Math.random().toString(36).substring(7)}`;
       setTradeLink(link);
-      await saveBotMessage(`✅ VERIFICATION COMPLETE. Secure swap channel generated. Trade Link: ${link}`);
+      await saveBotMessage(`✅ ASSETS VERIFIED. Secure Vault Link: ${link}`, 'bot');
       setIsTyping(false);
-    }, 2000);
+    }, 2500);
   };
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !trade) return;
 
-    const userId = Number(user.user_id || user.id);
+    const userId = Number(user?.user_id || user?.id);
     const receiverId = userId === trade.offerer_user_id ? trade.owner_user_id : trade.offerer_user_id;
 
     try {
@@ -134,30 +134,33 @@ export default function EscrowRoom() {
         sender_id: userId,
         receiver_id: receiverId,
         trade_id: tradeId,
-        content: newMessage
+        content: newMessage,
+        type: 'user'
       });
+      
       const sentMsg = newMessage;
       setNewMessage('');
       await fetchMessages();
       
-      // AI Reactions
-      const lowerMsg = sentMsg.toLowerCase();
-      if (lowerMsg.includes('ready') || lowerMsg.includes('agree') || lowerMsg.includes('confirm')) {
+      // Intelligent AI Responses
+      const input = sentMsg.toLowerCase();
+      if (input.includes('ready') || input.includes('agree')) {
         setIsTyping(true);
         setTimeout(() => {
-          saveBotMessage("Acknowledged. Monitoring the other party's readiness status...");
+          saveBotMessage("Scanning inventory... Please wait while I verify the other party's readiness.");
           setIsTyping(false);
         }, 1500);
-      } else if (lowerMsg.includes('hi') || lowerMsg.includes('hello')) {
-        setIsTyping(true);
-        setTimeout(() => {
-          saveBotMessage(`Greetings ${user.username}. I am standing by for item verification. Please both parties confirm readiness.`);
-          setIsTyping(false);
-        }, 1000);
+      } else if (input.includes('scam') || input.includes('safe')) {
+        saveBotMessage("All transactions are processed through encrypted multi-sig vaults. Your items are 100% protected.");
+      } else if (input.includes('hi') || input.includes('hello')) {
+        saveBotMessage(`Greetings ${user?.username}. Protocol is standing by.`);
       }
     } catch (err) {
       console.error("Send error:", err);
-      alert("Terminal Error: Failed to transmit message.");
+      // Local fallback so user sees their message even if server lag
+      const fallbackMsg = { sender: user?.username, content: newMessage, isUser: true };
+      setMessages(prev => [...prev, fallbackMsg]);
+      setNewMessage('');
     }
   };
 

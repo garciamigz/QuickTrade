@@ -125,17 +125,23 @@ const initDB = async () => {
                     CREATE TABLE IF NOT EXISTS Messages (
                         msg_id SERIAL PRIMARY KEY,
                         sender_id INTEGER NOT NULL,
-                        receiver_id INTEGER NOT NULL,
+                        receiver_id INTEGER,
                         convo_id INTEGER,
                         trade_id INTEGER,
                         content TEXT NOT NULL,
+                        type TEXT DEFAULT 'user',
                         timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        item_id INTEGER,
-                        FOREIGN KEY (sender_id) REFERENCES users(user_id),
-                        FOREIGN KEY (receiver_id) REFERENCES users(user_id),
                         FOREIGN KEY (convo_id) REFERENCES Conversations(convo_id),
-                        FOREIGN KEY (trade_id) REFERENCES Trades(trade_id),
-                        FOREIGN KEY (item_id) REFERENCES Items(item_id)
+                        FOREIGN KEY (trade_id) REFERENCES Trades(trade_id)
+                    );
+
+                    CREATE TABLE IF NOT EXISTS TradeLogs (
+                        log_id SERIAL PRIMARY KEY,
+                        trade_id INTEGER NOT NULL,
+                        event TEXT NOT NULL,
+                        details TEXT,
+                        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (trade_id) REFERENCES Trades(trade_id)
                     );
 
                     CREATE TABLE IF NOT EXISTS Games (
@@ -248,17 +254,23 @@ const initDB = async () => {
                     CREATE TABLE IF NOT EXISTS Messages (
                         msg_id INTEGER PRIMARY KEY AUTOINCREMENT,
                         sender_id INTEGER NOT NULL,
-                        receiver_id INTEGER NOT NULL,
+                        receiver_id INTEGER,
                         convo_id INTEGER,
                         trade_id INTEGER,
                         content TEXT NOT NULL,
+                        type TEXT DEFAULT 'user',
                         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                        item_id INTEGER,
-                        FOREIGN KEY (sender_id) REFERENCES users(user_id),
-                        FOREIGN KEY (receiver_id) REFERENCES users(user_id),
                         FOREIGN KEY (convo_id) REFERENCES Conversations(convo_id),
-                        FOREIGN KEY (trade_id) REFERENCES Trades(trade_id),
-                        FOREIGN KEY (item_id) REFERENCES Items(item_id)
+                        FOREIGN KEY (trade_id) REFERENCES Trades(trade_id)
+                    );
+
+                    CREATE TABLE IF NOT EXISTS TradeLogs (
+                        log_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        trade_id INTEGER NOT NULL,
+                        event TEXT NOT NULL,
+                        details TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (trade_id) REFERENCES Trades(trade_id)
                     );
 
                     CREATE TABLE IF NOT EXISTS Games (
