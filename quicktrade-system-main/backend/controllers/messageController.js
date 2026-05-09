@@ -5,9 +5,12 @@ exports.sendMessage = async (req, res) => {
   try {
     const { sender_id, receiver_id, trade_id, content, convo_id } = req.body;
     
+    // Validate sender_id
+    if (!sender_id) return res.status(400).json({ error: "Sender ID is required" });
+
     const result = await db.run(
       'INSERT INTO Messages (sender_id, receiver_id, trade_id, convo_id, content, timestamp) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)',
-      [sender_id, receiver_id, trade_id || null, convo_id || null, content]
+      [sender_id, receiver_id || 0, trade_id || null, convo_id || null, content]
     );
 
     // Update conversation last message if convo_id exists

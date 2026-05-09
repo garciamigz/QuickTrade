@@ -265,62 +265,55 @@ export default function Profile() {
 
           {activeTab === 'history' && (
             <div className="history-list" style={{ overflowX: 'auto' }}>
-              <table className="history-table" style={{ width: '100%', borderCollapse: 'collapse', color: 'white' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid var(--gold)', textAlign: 'left' }}>
-                    <th style={{ padding: '15px' }}>Date</th>
-                    <th style={{ padding: '15px' }}>Trade ID</th>
-                    <th style={{ padding: '15px' }}>Offered Item</th>
-                    <th style={{ padding: '15px' }}>Requested Item</th>
-                    <th style={{ padding: '15px' }}>Status</th>
-                    <th style={{ padding: '15px' }}>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr><td colSpan="6" style={{ padding: '20px', color: 'var(--gold)' }}>Loading history...</td></tr>
-                  ) : trades.length > 0 ? (
-                    trades.map(trade => (
-                      <tr key={trade.trade_id} style={{ borderBottom: '1px solid #222' }}>
-                        <td style={{ padding: '15px', fontSize: '0.9rem' }}>{new Date(trade.timestamp).toLocaleDateString()}</td>
-                        <td style={{ padding: '15px' }}>#{trade.trade_id}</td>
-                        <td style={{ padding: '15px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <img src={trade.offered_item_image} style={{ width: '30px' }} alt="" />
-                            <span>{trade.offered_item_name}</span>
-                          </div>
-                        </td>
-                        <td style={{ padding: '15px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <img src={trade.requested_item_image} style={{ width: '30px' }} alt="" />
-                            <span>{trade.requested_item_name}</span>
-                          </div>
-                        </td>
-                        <td style={{ padding: '15px' }}>
-                          <span style={{ 
-                            padding: '4px 10px', borderRadius: '4px', fontSize: '0.8rem',
-                            backgroundColor: trade.status === 'in_escrow' ? 'rgba(212, 175, 55, 0.2)' : (trade.status === 'completed' ? 'rgba(0, 255, 0, 0.1)' : 'rgba(255, 255, 255, 0.1)'),
-                            color: trade.status === 'in_escrow' ? 'var(--gold)' : (trade.status === 'completed' ? '#44ff44' : '#888')
-                          }}>
-                            {trade.status.replace('_', ' ').toUpperCase()}
-                          </span>
-                        </td>
-                        <td style={{ padding: '15px' }}>
-                          <button 
-                            className="btn-gold" 
-                            style={{ padding: '5px 12px', fontSize: '0.8rem' }}
-                            onClick={() => window.location.href = `/escrow/${trade.trade_id}`}
-                          >
-                            Enter Room
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr><td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: '#666' }}>No transactions found.</td></tr>
-                  )}
-                </tbody>
-              </table>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                {loading ? (
+                  <div className="gold-glow" style={{ textAlign: 'center', padding: '40px' }}>ACCESSING TRANSACTION LEDGER...</div>
+                ) : trades.length > 0 ? (
+                  trades.map(trade => (
+                    <div key={trade.trade_id} style={{ 
+                      backgroundColor: 'var(--black-light)', border: '1px solid #222', 
+                      borderRadius: '8px', padding: '20px', display: 'grid', 
+                      gridTemplateColumns: '1fr 2fr 1fr', alignItems: 'center', gap: '20px',
+                      transition: '0.3s', cursor: 'pointer'
+                    }} onClick={() => window.location.href = `/escrow/${trade.trade_id}`}>
+                      
+                      <div style={{ borderRight: '1px solid #333', paddingRight: '20px' }}>
+                        <div style={{ fontSize: '0.7rem', color: '#666' }}>ID: #{trade.trade_id}</div>
+                        <div style={{ fontSize: '0.9rem', color: 'var(--gold)', fontWeight: 'bold', margin: '5px 0' }}>
+                          {trade.status.toUpperCase()}
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: '#444' }}>{new Date(trade.timestamp).toLocaleString()}</div>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px' }}>
+                        <div style={{ textAlign: 'center' }}>
+                          <img src={trade.offered_item_image} style={{ width: '40px' }} alt="" />
+                          <div style={{ fontSize: '0.6rem', color: '#888', marginTop: '5px' }}>{trade.offered_item_name}</div>
+                        </div>
+                        <div style={{ color: 'var(--gold)', fontSize: '1.2rem' }}>⇄</div>
+                        <div style={{ textAlign: 'center' }}>
+                          <img src={trade.requested_item_image} style={{ width: '40px' }} alt="" />
+                          <div style={{ fontSize: '0.6rem', color: '#888', marginTop: '5px' }}>{trade.requested_item_name}</div>
+                        </div>
+                      </div>
+
+                      <div style={{ textAlign: 'right' }}>
+                        <button 
+                          className="btn-gold" 
+                          style={{ padding: '8px 20px', fontSize: '0.8rem', letterSpacing: '1px' }}
+                        >
+                          OPEN TERMINAL
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '60px', color: '#444' }}>
+                    <div style={{ fontSize: '3rem', marginBottom: '10px' }}>∅</div>
+                    <div>NO SECURE TRANSACTIONS FOUND IN LEDGER.</div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

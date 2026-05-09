@@ -8,6 +8,8 @@ export default function Admin() {
   const [stats, setStats] = useState({ users: 0, items: 0, trades: 0 });
   const [games, setGames] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [recentTrades, setRecentTrades] = useState([]);
+  const [loading, setLoading] = useState(false);
   
   // Form states
   const [gameForm, setGameForm] = useState({ name: '', category: '', image_url: '' });
@@ -17,7 +19,17 @@ export default function Admin() {
     fetchStats();
     fetchGames();
     fetchCategories();
+    fetchRecentTrades();
   }, []);
+
+  const fetchRecentTrades = async () => {
+    try {
+      const res = await axios.get('/api/trades/reports');
+      setRecentTrades(res.data.recentActivity || []);
+    } catch (err) {
+      console.error("Failed to fetch trades:", err);
+    }
+  };
 
   const fetchStats = async () => {
     try {
@@ -202,20 +214,34 @@ export default function Admin() {
         </div>
 
         {/* Games List */}
-        <div style={{ marginTop: '40px', backgroundColor: 'var(--black-light)', padding: '30px', borderRadius: '15px', border: '1px solid #333' }}>
-            <h2 style={{ color: 'var(--gold)', marginBottom: '20px' }}>Managed Games</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
-                {games.map(game => (
-                    <div key={game.game_id} style={{ 
-                        backgroundColor: '#111', padding: '15px', borderRadius: '10px', border: '1px solid #222'
-                    }}>
-                        <div style={{ height: '100px', backgroundColor: '#222', borderRadius: '5px', marginBottom: '10px', overflow: 'hidden' }}>
-                            {game.image_url && <img src={game.image_url} alt={game.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+        <div style={{ marginTop: '40px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
+            <div style={{ backgroundColor: 'var(--black-light)', padding: '30px', borderRadius: '15px', border: '1px solid #333' }}>
+                <h2 style={{ color: 'var(--gold)', marginBottom: '20px', fontSize: '1.2rem', textTransform: 'uppercase' }}>Recent System Activity</h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {recentTrades.length > 0 ? recentTrades.map(trade => (
+                        <div key={trade.trade_id} style={{ 
+                            fontSize: '0.8rem', padding: '10px', backgroundColor: '#111', 
+                            borderLeft: '3px solid var(--gold)', display: 'flex', justifyContent: 'space-between'
+                        }}>
+                            <span>Trade #{trade.trade_id}: {trade.offered_item} ⇄ {trade.requested_item}</span>
+                            <span style={{ color: 'var(--gold)' }}>{trade.status.toUpperCase()}</span>
                         </div>
-                        <h4 style={{ margin: '0 0 5px 0' }}>{game.name}</h4>
-                        <span style={{ fontSize: '0.8rem', color: '#888' }}>{game.category}</span>
-                    </div>
-                ))}
+                    )) : <p style={{ color: '#666' }}>No recent activity detected.</p>}
+                </div>
+            </div>
+
+            <div style={{ backgroundColor: 'var(--black-light)', padding: '30px', borderRadius: '15px', border: '1px solid #333' }}>
+                <h2 style={{ color: 'var(--gold)', marginBottom: '20px', fontSize: '1.2rem', textTransform: 'uppercase' }}>Managed Games</h2>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '15px' }}>
+                    {games.map(game => (
+                        <div key={game.game_id} style={{ 
+                            backgroundColor: '#111', padding: '10px', borderRadius: '8px', border: '1px solid #222', textAlign: 'center'
+                        }}>
+                            <div style={{ fontWeight: 'bold', fontSize: '0.8rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{game.name}</div>
+                            <div style={{ fontSize: '0.6rem', color: '#666' }}>{game.category}</div>
+                        </div>
+                    ))}
+                </div>
             </div>
         </div>
       </main>
