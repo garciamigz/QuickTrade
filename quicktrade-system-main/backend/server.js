@@ -13,12 +13,14 @@ const itemRoutes = require("./routes/items");
 const tradeRoutes = require("./routes/trades");
 const messageRoutes = require("./routes/messages");
 const adminRoutes = require("./routes/admin");
+const ticketRoutes = require("./routes/tickets");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/items", itemRoutes);
 app.use("/api/trades", tradeRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/tickets", ticketRoutes);
 
 if (process.env.NODE_ENV !== "production") {
   app.listen(5000, () => {

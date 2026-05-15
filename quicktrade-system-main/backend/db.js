@@ -67,6 +67,7 @@ const initDB = async () => {
                         username TEXT UNIQUE NOT NULL,
                         email TEXT UNIQUE NOT NULL,
                         password TEXT NOT NULL,
+                        role TEXT DEFAULT 'user',
                         premium_status INTEGER DEFAULT 0,
                         balance DECIMAL(18, 2) DEFAULT 0.00,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -168,6 +169,63 @@ const initDB = async () => {
                         FOREIGN KEY (post_id) REFERENCES ItemPosts(post_id),
                         UNIQUE(user_id, post_id)
                     );
+
+                    CREATE TABLE IF NOT EXISTS TradeTickets (
+                        ticket_id SERIAL PRIMARY KEY,
+                        ticket_code TEXT UNIQUE NOT NULL,
+                        creator_user_id INTEGER NOT NULL,
+                        joiner_user_id INTEGER,
+                        middleman_user_id INTEGER,
+                        status TEXT DEFAULT 'Pending',
+                        invite_note TEXT,
+                        completed_at TIMESTAMP,
+                        cancelled_at TIMESTAMP,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (creator_user_id) REFERENCES users(user_id),
+                        FOREIGN KEY (joiner_user_id) REFERENCES users(user_id),
+                        FOREIGN KEY (middleman_user_id) REFERENCES users(user_id)
+                    );
+
+                    CREATE TABLE IF NOT EXISTS TradeTicketItems (
+                        item_submission_id SERIAL PRIMARY KEY,
+                        ticket_id INTEGER NOT NULL,
+                        user_id INTEGER NOT NULL,
+                        game_name TEXT NOT NULL,
+                        item_name TEXT NOT NULL,
+                        quantity INTEGER DEFAULT 1,
+                        screenshot_url TEXT,
+                        notes TEXT,
+                        submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (ticket_id) REFERENCES TradeTickets(ticket_id),
+                        FOREIGN KEY (user_id) REFERENCES users(user_id),
+                        UNIQUE(ticket_id, user_id)
+                    );
+
+                    CREATE TABLE IF NOT EXISTS TradeTicketLogs (
+                        log_id SERIAL PRIMARY KEY,
+                        ticket_id INTEGER NOT NULL,
+                        actor_user_id INTEGER,
+                        event_type TEXT NOT NULL,
+                        message TEXT,
+                        evidence_url TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (ticket_id) REFERENCES TradeTickets(ticket_id),
+                        FOREIGN KEY (actor_user_id) REFERENCES users(user_id)
+                    );
+
+                    CREATE TABLE IF NOT EXISTS TradeTicketStatusHistory (
+                        history_id SERIAL PRIMARY KEY,
+                        ticket_id INTEGER NOT NULL,
+                        previous_status TEXT,
+                        new_status TEXT NOT NULL,
+                        changed_by INTEGER,
+                        note TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (ticket_id) REFERENCES TradeTickets(ticket_id),
+                        FOREIGN KEY (changed_by) REFERENCES users(user_id)
+                    );
                 `);
 
                 // PostgreSQL Migration logic
@@ -186,6 +244,10 @@ const initDB = async () => {
                 try {
                     await dbInterface.run('ALTER TABLE Messages ADD COLUMN IF NOT EXISTS trade_id INTEGER');
                 } catch (e) { console.log("Postgres Migration Info: trade_id column check."); }
+
+                try {
+                    await dbInterface.run('ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT \'user\'');
+                } catch (e) { console.log("Postgres Migration Info: user role column check."); }
 
                 console.log("PostgreSQL Tables Verified/Created and Migrated");
                 db = dbInterface;
@@ -215,6 +277,7 @@ const initDB = async () => {
                         username TEXT UNIQUE NOT NULL,
                         email TEXT UNIQUE NOT NULL,
                         password TEXT NOT NULL,
+                        role TEXT DEFAULT 'user',
                         premium_status INTEGER DEFAULT 0,
                         balance DECIMAL(18, 2) DEFAULT 0.00,
                         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -284,25 +347,6 @@ const initDB = async () => {
                         FOREIGN KEY (trade_id) REFERENCES Trades(trade_id)
                     );
 
-                    // Migration: Ensure new columns exist for existing databases
-                    try {
-                        await db.run('ALTER TABLE Trades ADD COLUMN status_detail TEXT DEFAULT "initial"');
-                    } catch (e) { /* Column already exists */ }
-
-                    try {
-                        await db.run('ALTER TABLE Messages ADD COLUMN type TEXT DEFAULT "user"');
-                    } catch (e) { /* Column already exists */ }
-
-                    try {
-                        await db.run('ALTER TABLE Messages ADD COLUMN trade_id INTEGER');
-                    } catch (e) { /* Column already exists */ }
-
-                    try {
-                        await db.run('CREATE TABLE IF NOT EXISTS TradeLogs (log_id INTEGER PRIMARY KEY AUTOINCREMENT, trade_id INTEGER, event TEXT, details TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)');
-                    } catch (e) { /* Table already exists */ }
-
-                    console.log("Database schema verified and migrated.");
-
                     CREATE TABLE IF NOT EXISTS Games (
                         game_id INTEGER PRIMARY KEY AUTOINCREMENT,
                         name TEXT UNIQUE NOT NULL,
@@ -326,7 +370,78 @@ const initDB = async () => {
                         FOREIGN KEY (post_id) REFERENCES ItemPosts(post_id),
                         UNIQUE(user_id, post_id)
                     );
+
+                    CREATE TABLE IF NOT EXISTS TradeTickets (
+                        ticket_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        ticket_code TEXT UNIQUE NOT NULL,
+                        creator_user_id INTEGER NOT NULL,
+                        joiner_user_id INTEGER,
+                        middleman_user_id INTEGER,
+                        status TEXT DEFAULT 'Pending',
+                        invite_note TEXT,
+                        completed_at DATETIME,
+                        cancelled_at DATETIME,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (creator_user_id) REFERENCES users(user_id),
+                        FOREIGN KEY (joiner_user_id) REFERENCES users(user_id),
+                        FOREIGN KEY (middleman_user_id) REFERENCES users(user_id)
+                    );
+
+                    CREATE TABLE IF NOT EXISTS TradeTicketItems (
+                        item_submission_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        ticket_id INTEGER NOT NULL,
+                        user_id INTEGER NOT NULL,
+                        game_name TEXT NOT NULL,
+                        item_name TEXT NOT NULL,
+                        quantity INTEGER DEFAULT 1,
+                        screenshot_url TEXT,
+                        notes TEXT,
+                        submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (ticket_id) REFERENCES TradeTickets(ticket_id),
+                        FOREIGN KEY (user_id) REFERENCES users(user_id),
+                        UNIQUE(ticket_id, user_id)
+                    );
+
+                    CREATE TABLE IF NOT EXISTS TradeTicketLogs (
+                        log_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        ticket_id INTEGER NOT NULL,
+                        actor_user_id INTEGER,
+                        event_type TEXT NOT NULL,
+                        message TEXT,
+                        evidence_url TEXT,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (ticket_id) REFERENCES TradeTickets(ticket_id),
+                        FOREIGN KEY (actor_user_id) REFERENCES users(user_id)
+                    );
+
+                    CREATE TABLE IF NOT EXISTS TradeTicketStatusHistory (
+                        history_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        ticket_id INTEGER NOT NULL,
+                        previous_status TEXT,
+                        new_status TEXT NOT NULL,
+                        changed_by INTEGER,
+                        note TEXT,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (ticket_id) REFERENCES TradeTickets(ticket_id),
+                        FOREIGN KEY (changed_by) REFERENCES users(user_id)
+                    );
                 `);
+                const migrations = [
+                    'ALTER TABLE Trades ADD COLUMN status_detail TEXT DEFAULT "initial"',
+                    'ALTER TABLE Messages ADD COLUMN type TEXT DEFAULT "user"',
+                    'ALTER TABLE Messages ADD COLUMN trade_id INTEGER',
+                    'ALTER TABLE users ADD COLUMN role TEXT DEFAULT "user"',
+                    'CREATE TABLE IF NOT EXISTS TradeLogs (log_id INTEGER PRIMARY KEY AUTOINCREMENT, trade_id INTEGER, event TEXT, details TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)'
+                ];
+                for (const migration of migrations) {
+                    try {
+                        await sqliteDB.run(migration);
+                    } catch (e) {
+                        // Existing local databases may already have these columns.
+                    }
+                }
                 db = sqliteDB;
                 return db;
             } catch (err) {
